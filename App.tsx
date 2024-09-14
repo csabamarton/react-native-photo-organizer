@@ -1,118 +1,70 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
 import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar, useColorScheme } from 'react-native';
+import HomeScreen from './src/screens/HomeScreen';
+import AlbumScreen from './src/screens/AlbumScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import { Ionicons } from '@expo/vector-icons';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const Tab = createBottomTabNavigator();
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+// Abstracted screen options for reuse
+const getScreenOptions = (routeName: string, isDarkMode: boolean) => ({
+  tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+    let iconName: keyof typeof Ionicons.glyphMap;
 
-function Section({children, title}: SectionProps): React.JSX.Element {
+    if (routeName === 'Home') {
+      iconName = 'home-outline';
+    } else if (routeName === 'Album') {
+      iconName = 'albums-outline';
+    } else if (routeName === 'Settings') {
+      iconName = 'settings-outline';
+    } else {
+      iconName = 'help-circle-outline'; // Default to avoid undefined errors
+    }
+
+    return <Ionicons name={iconName} size={size} color={color} />;
+  },
+  headerStyle: {
+    backgroundColor: isDarkMode ? '#1c1c1e' : '#f2f2f7',
+  },
+  headerTintColor: isDarkMode ? '#fff' : '#000',
+});
+
+const RootTab: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      ...getScreenOptions(route.name, isDarkMode),
+      tabBarActiveTintColor: isDarkMode ? '#fff' : '#000',
+      tabBarInactiveTintColor: 'gray',
+    })}
+  >
+    <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
+    <Tab.Screen name="Album" component={AlbumScreen} options={{ title: 'Album' }} />
+    <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+  </Tab.Navigator>
+);
+
+const AppNavigation: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => (
+  <NavigationContainer>
+    <RootTab isDarkMode={isDarkMode} />
+  </NavigationContainer>
+);
+
+const App: React.FC = () => {
   const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
+    <SafeAreaProvider>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+        backgroundColor={isDarkMode ? '#000' : '#fff'}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <AppNavigation isDarkMode={isDarkMode} />
+    </SafeAreaProvider>
   );
-}
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+};
 
 export default App;
