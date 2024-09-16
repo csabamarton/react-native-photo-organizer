@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types/navigation';
+import React, {useEffect, useState} from 'react';
+import {Alert, FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {RouteProp} from '@react-navigation/native';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {RootStackParamList} from '../types/navigation';
 import PhotoThumbnail from '../components/PhotoThumbnail';
-import { mockPhotos } from '../utils/mockData';
+import {mockPhotos} from '../utils/mockData';
 import * as MediaLibrary from 'expo-media-library';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 type AlbumScreenRouteProp = RouteProp<RootStackParamList, 'Album'>;
 type AlbumScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Album'>;
@@ -27,40 +28,71 @@ const AlbumScreen: React.FC<Props> = ({ route }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [deletingPhotos, setDeletingPhotos] = useState<Photo[]>([]);
 
+
   useEffect(() => {
     const fetchPhotos = async () => {
-      if (Constants.isDevice) {
+      const isPhysicalDevice = Platform.OS !== 'web';
+      console.log('Is physical device:', isPhysicalDevice);
+
+      if (isPhysicalDevice) {
         const { status } = await MediaLibrary.requestPermissionsAsync();
+        console.log('Media Library Permission Status:', status);
+
         if (status === 'granted') {
-          const media = await MediaLibrary.getAssetsAsync({
-            mediaType: 'photo',
-            sortBy: 'creationTime',
-            first: 50,
-          });
-          setPhotos(
-            media.assets.map(asset => ({ id: asset.id, uri: asset.uri, selected: false }))
-          );
+          try {
+            const media = await MediaLibrary.getAssetsAsync({
+              mediaType: 'photo',
+              sortBy: 'creationTime',
+              first: 50,
+            });
+            console.log('Media Assets:', media.assets);
+
+            setPhotos(
+              media.assets.map(asset => ({ id: asset.id, uri: asset.uri, selected: false }))
+            );
+          } catch (error) {
+            console.error('Error fetching media assets:', error);
+          }
+        } else {
+          console.log('Permission not granted. Using mock data.');
+          setPhotos(mockPhotos.map(photo => ({ ...photo, selected: false })));
         }
       } else {
+        console.log('Not running on a physical device. Using mock data.');
         setPhotos(mockPhotos.map(photo => ({ ...photo, selected: false })));
       }
     };
 
-    fetchPhotos();
+    fetchPhotos().then(() => {
+      console.log('Photos fetched successfully.');
+    }).catch((error) => {
+      console.error('Error fetching photos:', error);
+    });
   }, []);
+
+
 
   // Toggle photo selection
   const toggleSelection = (id: string) => {
-    setPhotos(photos.map(photo =>
+    console.log('Toggling selection for:', id);
+    const updatedPhotos = photos.map(photo =>
       photo.id === id ? { ...photo, selected: !photo.selected } : photo
-    ));
+    );
+    setPhotos(updatedPhotos);
+    console.log('Updated Photos:', updatedPhotos); // Log updated photos after toggling selection
   };
 
   // Handle the deletion of selected photos
   const handleDelete = () => {
     const selectedPhotos = photos.filter(photo => photo.selected);
-    setPhotos(photos.filter(photo => !photo.selected));
+    console.log('Photos to delete:', selectedPhotos); // Log photos that will be deleted
+
+    const remainingPhotos = photos.filter(photo => !photo.selected);
+    setPhotos(remainingPhotos);
     setDeletingPhotos([...deletingPhotos, ...selectedPhotos.map(photo => ({ ...photo, selected: false }))]);
+
+    console.log('Remaining Photos:', remainingPhotos); // Log remaining photos after deletion
+    console.log('Deleting Photos:', deletingPhotos); // Log photos in the deletingPhotos state
   };
 
   const handleKeep = () => {
@@ -110,11 +142,14 @@ const AlbumScreen: React.FC<Props> = ({ route }) => {
           <TouchableOpacity onPress={() => toggleSelection(item.id)} style={styles.touchable}>
             <View style={[styles.photoContainer, item.selected && styles.selected]}>
               <PhotoThumbnail uri={item.uri} size={100} />
+              {item.selected && <View style={styles.overlay} />}
+              <Text style={styles.photoText}>{item.id}</Text>
             </View>
           </TouchableOpacity>
         )}
         numColumns={3}
       />
+
 
       {deletingPhotos.length > 0 && (
         <>
@@ -151,6 +186,10 @@ const AlbumScreen: React.FC<Props> = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
+  photoText: {
+    fontSize: 12,
+    color: 'black',
+  },
   container: {
     flex: 1,
     padding: 10,
@@ -166,15 +205,20 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   touchable: {
-    margin: 4, // Adds padding to make it easier to click
+    margin: 4,
   },
   photoContainer: {
     borderRadius: 10,
     overflow: 'hidden',
+    position: 'relative',
   },
   selected: {
     borderWidth: 2,
     borderColor: 'green',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 128, 0, 0.3)', // Adds a green overlay when selected
   },
   actionContainer: {
     flexDirection: 'row',

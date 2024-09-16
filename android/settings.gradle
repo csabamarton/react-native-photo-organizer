@@ -1,6 +1,19 @@
-pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
-plugins { id("com.facebook.react.settings") }
-extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+pluginManagement {
+    repositories {
+        mavenCentral()
+        google()
+        gradlePluginPortal()
+        maven { url = uri("../node_modules/@react-native/gradle-plugin") }
+    }
+}
+
 rootProject.name = 'PixelSort'
 include ':app'
-includeBuild('../node_modules/@react-native/gradle-plugin')
+
+// Include the React Native Gradle plugin if it exists
+try {
+    includeBuild('../node_modules/@react-native/gradle-plugin')
+} catch (Exception e) {
+    // Log an error or handle the exception if necessary
+    println("Could not include React Native Gradle Plugin: ${e.message}")
+}
